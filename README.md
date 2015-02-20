@@ -10,7 +10,7 @@ information, take a look to [CDN-Floodlight][cdn].
 
 The code is released under the Apache License, Version 2.0.
 
-  [cdn]: http://gitlab.atica.um.es/gn3plus/cdnfloodlight/blob/master/README.md
+  [cdn]: http://gitlab.atica.um.es/gn3plus/cdn-floodlight/blob/cdn/README.md
 
 ## Install
 
