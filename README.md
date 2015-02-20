@@ -1,20 +1,22 @@
 # GN3proxy
 
-Simple HTTP proxy that communicates with a [CDN-Floodlight](TBD) application.
+Simple HTTP proxy that communicates with a [CDN-Floodlight][cdn] application.
 It has been developed in Python and features a minimalist plugin architecture
 to invoke external functions when an HTTP method is handled.
 
 The software has been developed by the University of Murcia for the Joint
 Research Activity 2 Task 2 (JRA2T2) of the GN3plus project. For more
-information, take a look to [CDN-Floodlight](TBD).
+information, take a look to [CDN-Floodlight][cdn].
 
 The code is released under the Apache License, Version 2.0.
+
+  [cdn]: http://gitlab.atica.um.es/gn3plus/cdnfloodlight/blob/master/README.md
 
 ## Install
 
 Make sure that Python is installed in your system and clone this repository:
 
-> `git clone https://gitlab.atica.um.es/gn3proxy` (TBD)
+> `git clone http://gitlab.atica.um.es/gn3plus/gn3proxy.git`
 
 To run your proxy, you will also need `iptables` to redirect incoming HTTP
 traffic to GN3proxy.
