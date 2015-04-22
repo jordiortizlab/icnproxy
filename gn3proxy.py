@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 # Copyright 2014, University of Murcia (Spain)
 #
@@ -79,11 +79,16 @@ class HttpProxyConnection(httplib.HTTPConnection):
         if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
             self.sock.settimeout(timeout)
         self.sock.bind(('', 0))
+        self._localaddr, self._localport = self.sock.getsockname()
+        print(host)
+        self._peeraddr = socket.gethostbyname(host)
+        if port == None:
+            self._peerport = 80
+        else:
+            self._peerport = port
     
     def connect(self):
-        self.sock.connect((self.host, self.port))
-        self._localaddr, self._localport = self.sock.getsockname()
-        self._peeraddr, self._peerport = self.sock.getpeername()
+        self.sock.connect((self._peeraddr, self._peerport))
         
         if self._tunnel_host:
             self._tunnel()
@@ -172,7 +177,6 @@ class HttpProxyHandler(BaseHTTPRequestHandler):
         
         host, method, uri, headers, body = self.__parse_request()
         conn = HttpProxyConnection(host)
-        conn.connect()
         Plugin.delegate(hook, CONTROLLER, PRXMAC,
             ( host, uri ),
             { 'smac': PRXMAC,
@@ -181,6 +185,7 @@ class HttpProxyHandler(BaseHTTPRequestHandler):
               'proto': conn.proto(),
               'sport': conn.localport(),
               'dport': conn.peerport() })
+        conn.connect()
         self.__handle(conn, method, uri, headers, body)
     
     def do_GET(self):
