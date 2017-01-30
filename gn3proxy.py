@@ -22,9 +22,14 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 from argparse import ArgumentParser
 import httplib, socket
+import os
 
 DEFAULT_HTTP_PORT = 80
-DEFAULT_CONTROLLER = 'localhost:8080'
+if os.environ.has_key("CONTROLLER_IPADDR"):
+    DEFAULT_CONTROLLER = os.environ["CONTROLLER_IPADDR"] + ":8080"
+    print("Controller: %s" % DEFAULT_CONTROLLER)
+else:
+    DEFAULT_CONTROLLER = 'localhost:8080'
 
 class Plugin:
     """ Simple plugin framework.
@@ -222,6 +227,12 @@ class ThreadedHttpProxy(ThreadingMixIn, HTTPServer):
 if __name__ == '__main__':
     global PLUGINMGR, CONTROLLER, PRXMAC
 
+    if os.environ.has_key("PROXY_MACADDR"):
+        PRXMAC = os.environ["PROXY_MACADDR"]
+        print("Proxy mac: %s" % PRXMAC)
+    else:
+        PRXMAC = 'ff:ff:ff:ff:ff:ff'
+
     # Parse command line
     argparser = ArgumentParser()
     argparser.add_argument("-p", "--port", type=int, default=DEFAULT_HTTP_PORT,
@@ -230,7 +241,7 @@ if __name__ == '__main__':
         help="ip address and port where controller is listening")
     argparser.add_argument("-x", "--plugin", default=None,
         help="plugin filename to delegate GET notifications")
-    argparser.add_argument("mac",
+    argparser.add_argument("-mac", default=PRXMAC,
         help="mac address of the nic attached to the data network")
     args = argparser.parse_args()
     port = args.port
