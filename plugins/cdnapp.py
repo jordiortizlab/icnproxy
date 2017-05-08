@@ -12,6 +12,6 @@ def get(controller, prxid, resource, flow):
     conn = httplib.HTTPConnection(controller)
     conn.putheader("Authorization", "Basic %s" % auth)
     conn.endheaders()
-    conn.request('POST', "/wm/cdnmanager/priv/v1.0/proxyreq",
+    conn.request('POST', "/onos/icn/proxyrequest",
         json.dumps(body), { 'content-type': 'application/json' })
     conn.getresponse()
