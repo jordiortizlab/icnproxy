@@ -25,6 +25,14 @@ import http.client
 import json
 import socket
 import sys
+import configparser
+
+global controller
+global controllerport
+global proxymac
+global ctrlurl
+global user
+global passwd
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
@@ -79,11 +87,6 @@ class ICNProxy(object):
         # Make request to controller
         (laddr, lport, raddr, rport) = http_connection.getSocketInfo()
 
-        # TODO Convert these vars in arguments
-        controller = '172.17.0.3'
-        controllerport = '8181'
-        proxymac = 'ca:fe:ca:fe:ca:fe:ca:fe'
-
         ctrl_connection = myHTTPConnection(controller, controllerport)
         flow = { 'smac': proxymac,
               'saddr': laddr,
@@ -92,7 +95,7 @@ class ICNProxy(object):
               'sport': lport,
               'dport': rport}
         body = { 'proxy': proxymac, 'hostname': server, 'uri': url, 'flow': flow }
-        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + '/onos/icn/proxyrequest', body.__str__())
+        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__())
         ctrl_connection.close()
         # Continue downloading from origin
 
@@ -112,6 +115,17 @@ class ICNProxy(object):
         http_connection.close()
         del http_connection
 
+
+parser = configparser.ConfigParser()
+parser.read('icnproxy.ini')
+
+controller = parser['DEFAULT']['controller']
+controllerport = parser['DEFAULT']['controllerport']
+proxymac = parser['DEFAULT']['proxymac']
+ctrlurl = parser['DEFAULT']['controlurl']
+user = parser['DEFAULT']['user']
+passwd = parser['DEFAULT']['passwd']
+print("Read config: {} {} {} {} {} {}".format(controller, controllerport, proxymac, ctrlurl, user, passwd))
 
 api = application = falcon.API()
 # Te creas el objeto que va a responder a una ruta
