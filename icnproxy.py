@@ -24,6 +24,8 @@ import base64
 import falcon
 import http.client
 import json
+import logging
+import logging.config
 import socket
 import sys
 import configparser
@@ -35,16 +37,12 @@ global ctrlurl
 global user
 global passwd
 
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
-
-
 class myHTTPConnection(http.client.HTTPConnection):
 
     def __init__(self, host, port=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
         super().__init__(host, port, timeout, source_address)
         self.sock = self._create_connection(
-            (self.host,self.port), self.timeout, self.source_address)
+            (self.host, self.port), self.timeout, self.source_address)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     def connect(self):
@@ -59,7 +57,7 @@ class myHTTPConnection(http.client.HTTPConnection):
 class ICNProxy(object):
 
     def on_get(self, req, resp, **kwargs):
-        print("Received GET")
+        logger.debug("Received GET")
         # En kwargs tienes los parametros.
         # Create a response using msgpack
         self.on_post(req, resp)
@@ -70,19 +68,20 @@ class ICNProxy(object):
         # illustrate how this may be overridden as needed.
         #resp.status = falcon.HTTP_200
     def on_put(self, req, resp):
-        eprint('NON IMPLEMENTED PUT')
+        logger.error('NON IMPLEMENTED PUT')
+        return
         # body = {'status':"OK"}
         # resp.body = json.dumps(doc, ensure_ascii=False)
         # Aqui se inicializa la API
 
     def on_post(self, req: falcon.Request, resp: falcon.Response):
-        print("Received POST")
-        print("uri: ", req.uri)
+        logger.debug("Received POST {}".format(req.uri))
+
         server = socket.gethostbyname(req.host)
         port = req.port
         method = req.method
         url = req.uri
-        print("Received request {} {} {} {}".format(server, port, method, url))
+        logger.info("Received request {} {} {} {}".format(server, port, method, url))
         http_connection = myHTTPConnection(server, port)
 
         # Make request to controller
@@ -104,13 +103,14 @@ class ICNProxy(object):
 
         ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__(), {'Authorization' : bauth})
         ctrlresponse = ctrl_connection.getresponse()
+        logger.debug("Received controller response: {} {}".format(ctrlresponse.status, ctrlresponse.msg))
         ctrl_connection.close()
         # Continue downloading from origin
 
         http_connection.request(method, url)
         response = http_connection.getresponse()
-        body = response.read().decode('UTF-8')
-        print(response.status)
+        body = response.read()
+        logger.debug("Content provider or cache contacted: {} {}".format(response.status, response.msg))
         resp.status = falcon.get_http_status(response.status)
         resp.body = body
         resp.set_headers({})
@@ -119,21 +119,23 @@ class ICNProxy(object):
                 resp.append_header(hname, "deflate")
             else:
                 resp.append_header(hname, hvalue)
-        # http_connection.connect()
         http_connection.close()
-        del http_connection
+        logger.info("End Request {}".format(url))
 
+logging.config.fileConfig('logging.conf')
+logger = logging.getLogger(__name__)
 
 parser = configparser.ConfigParser()
 parser.read('icnproxy.ini')
 
-controller = parser['DEFAULT']['controller']
+controller = socket.gethostbyname(parser['DEFAULT']['controller'])
 controllerport = parser['DEFAULT']['controllerport']
 proxymac = parser['DEFAULT']['proxymac']
 ctrlurl = parser['DEFAULT']['controlurl']
 user = parser['DEFAULT']['user']
 passwd = parser['DEFAULT']['passwd']
-print("Read config: {} {} {} {} {} {}".format(controller, controllerport, proxymac, ctrlurl, user, passwd))
+logger.info("Read config: {} {} {} {} {} {}".format(controller, controllerport, proxymac, ctrlurl, user, passwd))
+logger.debug("DEBUG OUTPUT ENABLED")
 
 api = application = falcon.API()
 # Te creas el objeto que va a responder a una ruta
