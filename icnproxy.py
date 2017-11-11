@@ -20,6 +20,7 @@
 
 
 
+import base64
 import falcon
 import http.client
 import json
@@ -95,7 +96,14 @@ class ICNProxy(object):
               'sport': lport,
               'dport': rport}
         body = { 'proxy': proxymac, 'hostname': server, 'uri': url, 'flow': flow }
-        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__())
+
+        b64tok = bytearray()
+        b64tok.extend(map(ord, '%s:%s' % (user, passwd)))
+        auth = base64.encodebytes(b64tok)
+        bauth = "Basic %s" % auth
+
+        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__(), {'Authorization' : bauth})
+        ctrlresponse = ctrl_connection.getresponse()
         ctrl_connection.close()
         # Continue downloading from origin
 
