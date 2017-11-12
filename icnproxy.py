@@ -41,11 +41,13 @@ class myHTTPConnection(http.client.HTTPConnection):
 
     def __init__(self, host, port=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
         super().__init__(host, port, timeout, source_address)
-        self.sock = self._create_connection(
-            (self.host, self.port), self.timeout, self.source_address)
+        # self.sock = self._create_connection(
+        #     (self.host, self.port), self.timeout, self.source_address)
+        self.sock = self.createSocket()
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     def connect(self):
+         self.sock.connect(self.sa)
          if self._tunnel_host:
             self._tunnel()
 
@@ -53,6 +55,39 @@ class myHTTPConnection(http.client.HTTPConnection):
         (laddr, lport) = self.sock.getsockname()
         (daddr, dport) = self.sock.getpeername()
         return (laddr, lport, daddr, dport)
+
+    # createSocket replaces the create_connection method from socket so that we can split between socket creation and
+    # actually connect to the other end
+    def createSocket(self, address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
+                      source_address=None):
+        host, port = address
+        err = None
+        for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            sock = None
+            try:
+                sock = socket(af, socktype, proto)
+                if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+                    sock.settimeout(timeout)
+                if source_address:
+                    sock.bind(source_address)
+                # DO NOT CONNECT!
+                # sock.connect(sa)
+                self.sa = sa
+                # Break explicitly a reference cycle
+                err = None
+                return sock
+
+            except socket.error as _:
+                err = _
+                if sock is not None:
+                    sock.close()
+
+        if err is not None:
+            raise err
+        else:
+            raise socket.error("getaddrinfo returns an empty list")
+
 
 class ICNProxy(object):
 
