@@ -144,6 +144,7 @@ class ICNProxy(object):
         ctrl_connection.close()
         # Continue downloading from origin
 
+        http_connection.connect()
         http_connection.request(method, url)
         response = http_connection.getresponse()
         body = response.read()
