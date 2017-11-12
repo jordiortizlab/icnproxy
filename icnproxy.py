@@ -71,7 +71,7 @@ class myHTTPConnection(http.client.HTTPConnection):
                 if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
                     sock.settimeout(timeout)
                 if source_address:
-                    sock.bind(source_address)
+                    sock.bind((source_address, 0))
                 # DO NOT CONNECT!
                 # sock.connect(sa)
                 self.sa = sa
@@ -118,7 +118,7 @@ class ICNProxy(object):
         method = req.method
         url = req.uri
         logger.info("Received request {} {} {} {}".format(server, port, method, url))
-        http_connection = myHTTPConnection(server, port)
+        http_connection = myHTTPConnection(server, port, source_address=proxyaddr)
 
         # Make request to controller
         (laddr, lport) = http_connection.getSocketInfo()
@@ -174,7 +174,8 @@ proxymac = parser['DEFAULT']['proxymac']
 ctrlurl = parser['DEFAULT']['controlurl']
 user = parser['DEFAULT']['user']
 passwd = parser['DEFAULT']['passwd']
-logger.info("Read config: {} {} {} {} {} {}".format(controller, controllerport, proxymac, ctrlurl, user, passwd))
+proxyaddr = parser['DEFAULT']['proxyaddr']
+logger.info("Read config: {} {} {} {} {} {} {}".format(controller, controllerport, proxyaddr, proxymac, ctrlurl, user, passwd))
 logger.debug("DEBUG OUTPUT ENABLED")
 
 api = application = falcon.API()
