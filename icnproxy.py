@@ -54,8 +54,8 @@ class myHTTPConnection(http.client.HTTPConnection):
 
     def getSocketInfo(self):
         (laddr, lport) = self.sock.getsockname()
-        (daddr, dport) = self.sock.getpeername()
-        return (laddr, lport, daddr, dport)
+        # only source info is recovered since destination is already known as parameter
+        return (laddr, lport)
 
     # createSocket replaces the create_connection method from socket so that we can split between socket creation and
     # actually connect to the other end
@@ -121,7 +121,9 @@ class ICNProxy(object):
         http_connection = myHTTPConnection(server, port)
 
         # Make request to controller
-        (laddr, lport, raddr, rport) = http_connection.getSocketInfo()
+        (laddr, lport) = http_connection.getSocketInfo()
+        raddr = server
+        rport = port
 
         ctrl_connection = myHTTPConnection(controller, controllerport)
         flow = { 'smac': proxymac,
