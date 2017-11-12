@@ -133,6 +133,8 @@ class ICNProxy(object):
               'sport': lport,
               'dport': rport}
         body = { 'proxy': proxymac, 'hostname': server, 'uri': url, 'flow': flow }
+        logger.debug("Flow: {}".format(flow))
+        logger.debug("body: {}".format(body))
 
         userpass = user + ":" + passwd
         buserpass = bytes(userpass, encoding="ascii")
