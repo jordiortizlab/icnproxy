@@ -125,7 +125,7 @@ class ICNProxy(object):
         raddr = server
         rport = port
 
-        ctrl_connection = myHTTPConnection(controller, controllerport)
+        ctrl_connection = http.client.HTTPConnection(controller, controllerport)
         flow = { 'smac': proxymac,
               'saddr': laddr,
               'daddr': raddr,
