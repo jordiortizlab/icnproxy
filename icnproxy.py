@@ -43,7 +43,8 @@ class myHTTPConnection(http.client.HTTPConnection):
         super().__init__(host, port, timeout, source_address)
         # self.sock = self._create_connection(
         #     (self.host, self.port), self.timeout, self.source_address)
-        self.sock = self.createSocket()
+        self.sock = self.createSocket(
+            (self.host, self.port), self.timeout, self.source_address)
         self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
     def connect(self):
