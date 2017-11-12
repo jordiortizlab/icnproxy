@@ -67,7 +67,7 @@ class myHTTPConnection(http.client.HTTPConnection):
             af, socktype, proto, canonname, sa = res
             sock = None
             try:
-                sock = socket(af, socktype, proto)
+                sock = socket.socket(af, socktype, proto)
                 if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
                     sock.settimeout(timeout)
                 if source_address:
