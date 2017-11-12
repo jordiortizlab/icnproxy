@@ -134,12 +134,11 @@ class ICNProxy(object):
               'dport': rport}
         body = { 'proxy': proxymac, 'hostname': server, 'uri': url, 'flow': flow }
 
-        b64tok = bytearray()
-        b64tok.extend(map(ord, '%s:%s' % (user, passwd)))
-        auth = base64.encodebytes(b64tok)
-        bauth = "Basic %s" % auth
+        userpass = user + ":" + passwd
+        buserpass = bytes(userpass, encoding="ascii")
+        bauth = base64.b64encode(buserpass).decode("ascii")
 
-        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__(), {'Authorization' : bauth})
+        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__(), {'Authorization' : 'Basic %s' % bauth})
         ctrlresponse = ctrl_connection.getresponse()
         logger.debug("Received controller response: {} {}".format(ctrlresponse.status, ctrlresponse.msg))
         ctrl_connection.close()
