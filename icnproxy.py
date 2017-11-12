@@ -133,14 +133,13 @@ class ICNProxy(object):
               'sport': lport,
               'dport': rport}
         body = { 'proxy': proxymac, 'hostname': server, 'uri': url, 'flow': flow }
-        logger.debug("Flow: {}".format(flow))
-        logger.debug("body: {}".format(body))
+        logger.debug("body: {}".format(json.dumps(body)))
 
         userpass = user + ":" + passwd
         buserpass = bytes(userpass, encoding="ascii")
         bauth = base64.b64encode(buserpass).decode("ascii")
 
-        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, body.__str__(), {'Authorization' : 'Basic %s' % bauth})
+        ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, json.dumps(body), {'Authorization' : 'Basic %s' % bauth})
         ctrlresponse = ctrl_connection.getresponse()
         logger.debug("Received controller response: {} {}".format(ctrlresponse.status, ctrlresponse.msg))
         ctrl_connection.close()
