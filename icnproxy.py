@@ -38,9 +38,11 @@ global ctrlurl
 global user
 global passwd
 
+global sourceport
+
 class myHTTPConnection(http.client.HTTPConnection):
 
-    def __init__(self, host, port=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+    def __init__(self, host, port=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, source_port=None):
         super().__init__(host, port, timeout, source_address)
         # self.sock = self._create_connection(
         #     (self.host, self.port), self.timeout, self.source_address)
@@ -61,7 +63,7 @@ class myHTTPConnection(http.client.HTTPConnection):
     # createSocket replaces the create_connection method from socket so that we can split between socket creation and
     # actually connect to the other end
     def createSocket(self, address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
-                      source_address=None):
+                      source_address=None, source_port=None):
         host, port = address
         err = None
         for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
@@ -72,7 +74,12 @@ class myHTTPConnection(http.client.HTTPConnection):
                 if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
                     sock.settimeout(timeout)
                 if source_address:
-                    sock.bind((source_address, 0))
+                    logger.debug("Binding to {}".format(source_address))
+                    if source_port:
+                        sock.bind((source_address, source_port))
+                    else:
+                        sock.bind((source_address, 0))
+                    logger.debug("Bind success")
                 # DO NOT CONNECT!
                 # sock.connect(sa)
                 self.sa = sa
@@ -112,6 +119,7 @@ class ICNProxy(object):
         # Aqui se inicializa la API
 
     def on_post(self, req: falcon.Request, resp: falcon.Response):
+        global sourceport
         logger.debug("Received POST {}".format(req.uri))
 
         server = socket.gethostbyname(req.host)
@@ -119,7 +127,10 @@ class ICNProxy(object):
         method = req.method
         url = req.uri
         logger.info("Received request {} {} {} {}".format(server, port, method, url))
-        http_connection = myHTTPConnection(server, port, source_address=proxyaddr)
+        http_connection = myHTTPConnection(server, port, source_address=proxyaddr, source_port=sourceport)
+        sourceport += 1
+        if sourceport == 65535:
+            sourceport = 1025
 
         # Make request to controller
         (laddr, lport) = http_connection.getSocketInfo()
@@ -127,7 +138,6 @@ class ICNProxy(object):
         rport = port
 
         ctrl_connection = http.client.HTTPConnection(controller, controllerport)
-        logger.debug("Controller connection ok")
         flow = { "smac": proxymac,
               "saddr": laddr,
               "daddr": raddr,
@@ -179,6 +189,8 @@ passwd = parser['DEFAULT']['passwd']
 proxyaddr = parser['DEFAULT']['proxyaddr']
 logger.info("Read config: {} {} {} {} {} {} {}".format(controller, controllerport, proxyaddr, proxymac, ctrlurl, user, passwd))
 logger.debug("DEBUG OUTPUT ENABLED")
+
+sourceport = 1025
 
 api = application = falcon.API()
 # Te creas el objeto que va a responder a una ruta
