@@ -127,13 +127,15 @@ class ICNProxy(object):
         rport = port
 
         ctrl_connection = http.client.HTTPConnection(controller, controllerport)
-        flow = { 'smac': proxymac,
-              'saddr': laddr,
-              'daddr': raddr,
-              'proto': "HTTP",
-              'sport': lport,
-              'dport': rport}
-        body = { 'proxy': proxymac, 'hostname': server, 'uri': url, 'flow': flow }
+        logger.debug("Controller connection ok")
+        flow = { "smac": proxymac,
+              "saddr": laddr,
+              "daddr": raddr,
+              "proto": "'HTTP'",
+              "sport": lport,
+              "dport": rport}
+        body = {"proxy": proxymac, "hostname": server, "uri": url, "flow": flow}
+
         logger.debug("body: {}".format(json.dumps(body)))
 
         userpass = user + ":" + passwd
