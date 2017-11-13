@@ -32,6 +32,7 @@ import configparser
 
 global controller
 global controllerport
+global proxyaddr
 global proxymac
 global ctrlurl
 global user
