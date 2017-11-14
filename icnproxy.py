@@ -38,6 +38,7 @@ global proxymac
 global ctrlurl
 global user
 global passwd
+global serviceport
 
 global sourceport
 
@@ -104,6 +105,7 @@ class ICNProxy(tornado.web.RequestHandler):
     def get(self, *args, **kwargs):
         global sourceport
         global proxyport
+        global serviceport
         req = self.request
         logger.debug("Received GET {}".format(req.uri))
 
@@ -111,7 +113,7 @@ class ICNProxy(tornado.web.RequestHandler):
         method = "GET"
         url = req.uri
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
-        http_connection = myHTTPConnection(server, proxyport, source_address=proxyaddr, source_port=sourceport)
+        http_connection = myHTTPConnection(server, serviceport, source_address=proxyaddr, source_port=sourceport)
         sourceport += 1
         if sourceport == 65535:
             sourceport = 1025
@@ -119,7 +121,7 @@ class ICNProxy(tornado.web.RequestHandler):
         # Make request to controller
         (laddr, lport) = http_connection.getSocketInfo()
         raddr = server
-        rport = proxyport
+        rport = serviceport
 
         ctrl_connection = http.client.HTTPConnection(controller, controllerport)
         flow = { "smac": proxymac,
@@ -187,6 +189,7 @@ if __name__ == '__main__':
     passwd = parser['DEFAULT']['passwd']
     proxyaddr = parser['DEFAULT']['proxyaddr']
     proxyport = int(parser['DEFAULT']['proxyport'])
+    serviceport = int(parser['DEFAULT']['serviceport'])
     logger.info("Read config: {} {} {} {} {} {} {}".format(controller, controllerport, proxyaddr, proxymac, ctrlurl, user, passwd))
     logger.debug("DEBUG OUTPUT ENABLED")
 
