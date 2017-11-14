@@ -11,4 +11,4 @@ else
     source venv/bin/activate
 fi
 
-gunicorn --log-file=- -R --reload --bind 0.0.0.0:8080 icnproxy
+gunicorn --reload --bind 0.0.0.0:8080 icnproxy
