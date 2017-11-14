@@ -21,7 +21,8 @@
 
 
 import base64
-import falcon
+import tornado.ioloop
+import tornado.web
 import http.client
 import json
 import logging
@@ -98,36 +99,19 @@ class myHTTPConnection(http.client.HTTPConnection):
             raise socket.error("getaddrinfo returns an empty list")
 
 
-class ICNProxy(object):
+class ICNProxy(tornado.web.RequestHandler):
 
-    def on_get(self, req, resp, **kwargs):
-        logger.debug("Received GET")
-        # En kwargs tienes los parametros.
-        # Create a response using msgpack
-        self.on_post(req, resp)
-        # resp.data = msgpack.packb(resp.pretty_print(), use_bin_type=True)
-        # resp.content_type = 'application/msgpack'
-        # The following line can be omitted because 200 is the default
-        # status returned by the framework, but it is included here to
-        # illustrate how this may be overridden as needed.
-        #resp.status = falcon.HTTP_200
-    def on_put(self, req, resp):
-        logger.error('NON IMPLEMENTED PUT')
-        return
-        # body = {'status':"OK"}
-        # resp.body = json.dumps(doc, ensure_ascii=False)
-        # Aqui se inicializa la API
-
-    def on_post(self, req: falcon.Request, resp: falcon.Response):
+    def get(self, *args, **kwargs):
         global sourceport
-        logger.debug("Received POST {}".format(req.uri))
+        global proxyport
+        req = self.request
+        logger.debug("Received GET {}".format(req.uri))
 
         server = socket.gethostbyname(req.host)
-        port = req.port
-        method = req.method
+        method = "GET"
         url = req.uri
-        logger.info("Received request {} {} {} {}".format(server, port, method, url))
-        http_connection = myHTTPConnection(server, port, source_address=proxyaddr, source_port=sourceport)
+        logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
+        http_connection = myHTTPConnection(server, proxyport, source_address=proxyaddr, source_port=sourceport)
         sourceport += 1
         if sourceport == 65535:
             sourceport = 1025
@@ -135,7 +119,7 @@ class ICNProxy(object):
         # Make request to controller
         (laddr, lport) = http_connection.getSocketInfo()
         raddr = server
-        rport = port
+        rport = proxyport
 
         ctrl_connection = http.client.HTTPConnection(controller, controllerport)
         flow = { "smac": proxymac,
@@ -162,39 +146,51 @@ class ICNProxy(object):
         http_connection.request(method, url)
         response = http_connection.getresponse()
         body = response.read()
-        logger.debug("Content provider or cache contacted: {} {}".format(response.status, response.msg))
-        resp.status = falcon.get_http_status(response.status)
-        resp.body = body
-        resp.set_headers({})
-        for (hname, hvalue) in response.getheaders():
-            if hname == "Transfer-Encoding":
-                resp.append_header(hname, "deflate")
-            else:
-                resp.append_header(hname, hvalue)
         http_connection.close()
+        logger.debug("Content provider or cache contacted: {} {}".format(response.status, response.msg))
+        self.set_status(response.status)
+        self._headers = tornado.httputil.HTTPHeaders()
+        for (hname, hvalue) in response.getheaders():
+            if hname not in ('Content-Length', 'Transfer-Encoding', 'Content-Encoding', 'Connection'):
+                self.add_header(hname, hvalue)
+        self.write(body)
         logger.info("End Request {}".format(url))
 
-logging.config.fileConfig('logging.conf')
-logger = logging.getLogger(__name__)
 
-parser = configparser.ConfigParser()
-parser.read('icnproxy.ini')
+def run_proxy(port, start_ioloop=True):
+    """
+    Run proxy on the specified port. If start_ioloop is True (default),
+    the tornado IOLoop will be started immediately.
+    """
+    app = tornado.web.Application([
+        (r'.*', ICNProxy),
+    ])
+    app.listen(port)
+    ioloop = tornado.ioloop.IOLoop.instance()
+    if start_ioloop:
+        ioloop.start()
 
-controller = socket.gethostbyname(parser['DEFAULT']['controller'])
-controllerport = parser['DEFAULT']['controllerport']
-proxymac = parser['DEFAULT']['proxymac']
-ctrlurl = parser['DEFAULT']['controlurl']
-user = parser['DEFAULT']['user']
-passwd = parser['DEFAULT']['passwd']
-proxyaddr = parser['DEFAULT']['proxyaddr']
-logger.info("Read config: {} {} {} {} {} {} {}".format(controller, controllerport, proxyaddr, proxymac, ctrlurl, user, passwd))
-logger.debug("DEBUG OUTPUT ENABLED")
 
-sourceport = 1025
 
-api = application = falcon.API()
-# Te creas el objeto que va a responder a una ruta
-prefetch_instance = ICNProxy()
-# Añades las rutas que quieres, y qué objeto las atenderá.
-#api.add_route('/', prefetch_instance)
-api.add_sink(prefetch_instance.on_get)
+if __name__ == '__main__':
+    logging.config.fileConfig('logging.conf')
+    logger = logging.getLogger(__name__)
+
+    parser = configparser.ConfigParser()
+    parser.read('icnproxy.ini')
+
+    controller = socket.gethostbyname(parser['DEFAULT']['controller'])
+    controllerport = parser['DEFAULT']['controllerport']
+    proxymac = parser['DEFAULT']['proxymac']
+    ctrlurl = parser['DEFAULT']['controlurl']
+    user = parser['DEFAULT']['user']
+    passwd = parser['DEFAULT']['passwd']
+    proxyaddr = parser['DEFAULT']['proxyaddr']
+    proxyport = int(parser['DEFAULT']['proxyport'])
+    logger.info("Read config: {} {} {} {} {} {} {}".format(controller, controllerport, proxyaddr, proxymac, ctrlurl, user, passwd))
+    logger.debug("DEBUG OUTPUT ENABLED")
+
+    sourceport = 1025
+
+    print ("Starting HTTP proxy on port %d" % proxyport)
+    run_proxy(proxyport)
