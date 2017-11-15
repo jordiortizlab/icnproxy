@@ -29,6 +29,7 @@ import json
 import logging
 import logging.config
 import socket
+import signal
 import sys
 import configparser
 
@@ -42,6 +43,10 @@ global passwd
 global serviceport
 
 global sourceport
+
+def signal_handler(signal, frame):
+        print('You pressed Ctrl+C!')
+        sys.exit(0)
 
 class myHTTPConnection(http.client.HTTPConnection):
 
@@ -194,6 +199,8 @@ if __name__ == '__main__':
     logger.debug("DEBUG OUTPUT ENABLED")
 
     sourceport = 1025
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     print ("Starting HTTP proxy on port %d" % proxyport)
     run_proxy(proxyport)
