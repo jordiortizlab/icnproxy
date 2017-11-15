@@ -158,6 +158,7 @@ class ICNProxy(tornado.web.RequestHandler):
                 self.add_header(hname, hvalue)
         self.write(body)
         logger.info("End Request {}".format(url))
+        self.finish()
 
 
 def run_proxy(port, start_ioloop=True):
