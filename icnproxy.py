@@ -21,6 +21,7 @@
 
 
 import base64
+import tornado.httpserver
 import tornado.ioloop
 import tornado.web
 import http.client
@@ -167,11 +168,11 @@ def run_proxy(port, start_ioloop=True):
     app = tornado.web.Application([
         (r'.*', ICNProxy),
     ])
-    app.listen(port)
-    ioloop = tornado.ioloop.IOLoop.instance()
-    if start_ioloop:
-        ioloop.start()
 
+    server = tornado.httpserver.HTTPServer(app)
+    server.bind(port)
+    server.start(0)  # autodetect number of cores and fork a process for each
+    tornado.ioloop.IOLoop.instance().start()
 
 
 if __name__ == '__main__':
