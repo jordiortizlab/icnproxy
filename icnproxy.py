@@ -112,7 +112,7 @@ class ICNProxy(tornado.web.RequestHandler):
 
         server = socket.gethostbyname(req.host)
         method = "GET"
-        url = req.uri
+        url = req.full_url()
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
         http_connection = myHTTPConnection(server, serviceport, source_address=proxyaddr, source_port=sourceport)
         sourceport += 1
