@@ -108,7 +108,6 @@ class ICNProxy(tornado.web.RequestHandler):
         global proxyport
         global serviceport
         req = self.request
-        logger.debug("Received GET {}".format(req.uri))
 
         server = socket.gethostbyname(req.host)
         method = "GET"
@@ -133,15 +132,14 @@ class ICNProxy(tornado.web.RequestHandler):
               "dport": rport}
         body = {"proxy": proxymac, "hostname": server, "uri": url, "flow": flow}
 
-        logger.debug("body: {}".format(json.dumps(body)))
-
         userpass = user + ":" + passwd
         buserpass = bytes(userpass, encoding="ascii")
         bauth = base64.b64encode(buserpass).decode("ascii")
 
+        logger.debug("Sent Controller Request - {}".format(url))
         ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, json.dumps(body), {'Authorization' : 'Basic %s' % bauth})
         ctrlresponse = ctrl_connection.getresponse()
-        logger.debug("Received controller response: {} {}".format(ctrlresponse.status, ctrlresponse.msg))
+        logger.debug("Received controller response - {} {} {}".format(url, ctrlresponse.status, ctrlresponse.msg))
         ctrl_connection.close()
         # Continue downloading from origin
 
@@ -150,7 +148,7 @@ class ICNProxy(tornado.web.RequestHandler):
         response = http_connection.getresponse()
         body = response.read()
         http_connection.close()
-        logger.debug("Content provider or cache contacted: {} {}".format(response.status, response.msg))
+        logger.debug("Content provider or cache contacted: {}".format(response.status))
         self.set_status(response.status)
         self._headers = tornado.httputil.HTTPHeaders()
         for (hname, hvalue) in response.getheaders():
