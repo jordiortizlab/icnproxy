@@ -21,6 +21,7 @@
 
 
 import base64
+import datetime
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -112,6 +113,7 @@ class ICNProxy(tornado.web.RequestHandler):
         global sourceport
         global proxyport
         global serviceport
+        start = datetime.datetime.now()
         req = self.request
 
         server = socket.gethostbyname(req.host)
@@ -128,6 +130,7 @@ class ICNProxy(tornado.web.RequestHandler):
         raddr = server
         rport = serviceport
 
+        ctrl_start = datetime.datetime.now()
         ctrl_connection = http.client.HTTPConnection(controller, controllerport)
         flow = { "smac": proxymac,
               "saddr": laddr,
@@ -144,9 +147,10 @@ class ICNProxy(tornado.web.RequestHandler):
         logger.debug("Sent Controller Request - {}".format(url))
         ctrl_connection.request('POST', 'http://' + controller + ':' + str(controllerport) + ctrlurl, json.dumps(body), {'Authorization' : 'Basic %s' % bauth})
         ctrlresponse = ctrl_connection.getresponse()
-        logger.debug("Received controller response - {} {} {}".format(url, ctrlresponse.status, ctrlresponse.msg))
+        logger.debug("Received controller response - {} {}".format(url, ctrlresponse.status))
         ctrl_connection.close()
         # Continue downloading from origin
+        ctrl_end = datetime.datetime.now()
 
         http_connection.connect()
         http_connection.request(method, url)
@@ -161,6 +165,9 @@ class ICNProxy(tornado.web.RequestHandler):
                 self.add_header(hname, hvalue)
         self.write(body)
         logger.info("End Request {}".format(url))
+        end = datetime.datetime.now()
+        logger.info("Controller Request Time: {}".format((ctrl_end-ctrl_start).total_seconds()))
+        logger.info("Full Request Time: {}".format((end-start).total_seconds()))
         self.finish()
 
 
