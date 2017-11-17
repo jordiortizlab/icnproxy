@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $HOME/gn3proxy/
+
 if [ ! -d venv ]
 then
     echo "Virtual Env missing. Creating ./venv/"
@@ -10,4 +12,6 @@ else
     source venv/bin/activate
 fi
 
-python icnproxy.py
+
+python icnproxy.py&
+
