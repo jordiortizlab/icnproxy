@@ -189,6 +189,11 @@ def run_proxy(port, start_ioloop=True):
 if __name__ == '__main__':
     logging.config.fileConfig('logging.conf')
     logger = logging.getLogger(__name__)
+    handler = logging.FileHandler("icnproxy.log")
+    logger.setLevel(logging.DEBUG)
+    app_log = logging.getLogger("tornado.application")
+    tornado.log.enable_pretty_logging()
+    logger.addHandler(handler)
 
     parser = configparser.ConfigParser()
     parser.read('icnproxy.ini')
