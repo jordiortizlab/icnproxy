@@ -157,7 +157,7 @@ class ICNProxy(tornado.web.RequestHandler):
         response = http_connection.getresponse()
         body = response.read()
         http_connection.close()
-        logger.debug("Content provider or cache contacted: {}".format(response.status))
+        logger.debug("Content provider or cache contacted: {} {}".format(url, response.status))
         self.set_status(response.status)
         self._headers = tornado.httputil.HTTPHeaders()
         for (hname, hvalue) in response.getheaders():
