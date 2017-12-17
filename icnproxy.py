@@ -49,64 +49,6 @@ def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
         sys.exit(0)
 
-class myHTTPConnection(http.client.HTTPConnection):
-
-    def __init__(self, host, port=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None, source_port=None):
-        super().__init__(host, port, timeout, source_address)
-        # self.sock = self._create_connection(
-        #     (self.host, self.port), self.timeout, self.source_address)
-        self.sock = self.createSocket(
-            (self.host, self.port), self.timeout, self.source_address)
-        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-    def connect(self):
-         self.sock.connect(self.sa)
-         if self._tunnel_host:
-            self._tunnel()
-
-    def getSocketInfo(self):
-        (laddr, lport) = self.sock.getsockname()
-        # only source info is recovered since destination is already known as parameter
-        return (laddr, lport)
-
-    # createSocket replaces the create_connection method from socket so that we can split between socket creation and
-    # actually connect to the other end
-    def createSocket(self, address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT,
-                      source_address=None, source_port=None):
-        host, port = address
-        err = None
-        for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
-            af, socktype, proto, canonname, sa = res
-            sock = None
-            try:
-                sock = socket.socket(af, socktype, proto)
-                if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
-                    sock.settimeout(timeout)
-                if source_address:
-                    logger.debug("Binding to {}".format(source_address))
-                    if source_port:
-                        sock.bind((source_address, source_port))
-                    else:
-                        sock.bind((source_address, 0))
-                    logger.debug("Bind success")
-                # DO NOT CONNECT!
-                # sock.connect(sa)
-                self.sa = sa
-                # Break explicitly a reference cycle
-                err = None
-                return sock
-
-            except socket.error as _:
-                err = _
-                if sock is not None:
-                    sock.close()
-
-        if err is not None:
-            raise err
-        else:
-            raise socket.error("getaddrinfo returns an empty list")
-
-
 class ICNProxy(tornado.web.RequestHandler):
 
     def get(self, *args, **kwargs):
@@ -120,13 +62,15 @@ class ICNProxy(tornado.web.RequestHandler):
         method = "GET"
         url = req.full_url()
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
-        http_connection = myHTTPConnection(server, serviceport, source_address=proxyaddr, source_port=sourceport)
+        http_connection = http.client.HTTPConnection(server, serviceport, source_address=(proxyaddr, sourceport))
+        laddr = proxyaddr
+        lport = sourceport
         sourceport += 1
         if sourceport == 65535:
             sourceport = 1025
 
         # Make request to controller
-        (laddr, lport) = http_connection.getSocketInfo()
+
         raddr = server
         rport = serviceport
 
