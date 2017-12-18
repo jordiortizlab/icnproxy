@@ -22,6 +22,9 @@
 
 import base64
 import datetime
+from multiprocessing.queues import Queue
+from multiprocessing import get_context
+
 import tornado.httpserver
 import tornado.ioloop
 import tornado.web
@@ -65,7 +68,7 @@ class ICNProxy(tornado.web.RequestHandler):
         method = "GET"
         url = req.full_url()
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
-        sourceport = self.sourceports.pop(0)
+        sourceport = self.sourceports.get()
         logger.debug("Assigned sourceport {}".format(sourceport))
         laddr = proxyaddr
         lport = sourceport
@@ -114,16 +117,15 @@ class ICNProxy(tornado.web.RequestHandler):
         end = datetime.datetime.now()
         logger.info("Controller Request Time: {}".format((ctrl_end-ctrl_start).total_seconds()))
         logger.info("Full Request Time: {}".format((end-start).total_seconds()))
-        self.sourceports.append(sourceport)
+        self.sourceports.put(sourceport)
         self.finish()
 
 
-def run_proxy(port, start_ioloop=True):
+def run_proxy(port, sourceports):
     """
     Run proxy on the specified port. If start_ioloop is True (default),
     the tornado IOLoop will be started immediately.
     """
-    sourceports = list(range(32000, 65000))
 
     app = tornado.web.Application([
         (r'.*', ICNProxy, dict(sourceports=sourceports)),
@@ -161,5 +163,11 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, signal_handler)
 
+    # Prepare multi processing
+    ctx = get_context('spawn')
+    sourceports = ctx.Queue()
+    for port in range(32000, 65000):
+        sourceports.put(port)
+
     print ("Starting HTTP proxy on port %d" % proxyport)
-    run_proxy(proxyport)
+    run_proxy(proxyport, sourceports)
