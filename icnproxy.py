@@ -43,16 +43,19 @@ global user
 global passwd
 global serviceport
 
-global sourceport
-
 def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
         sys.exit(0)
 
 class ICNProxy(tornado.web.RequestHandler):
 
+
+
+    def initialize(self, sourceports):
+        self.sourceports = sourceports
+        super().initialize()
+
     def get(self, *args, **kwargs):
-        global sourceport
         global proxyport
         global serviceport
         start = datetime.datetime.now()
@@ -62,12 +65,10 @@ class ICNProxy(tornado.web.RequestHandler):
         method = "GET"
         url = req.full_url()
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
-        http_connection = http.client.HTTPConnection(server, serviceport, source_address=(proxyaddr, sourceport))
+        sourceport = self.sourceports.pop(0)
+        logger.debug("Assigned sourceport {}", sourceport)
         laddr = proxyaddr
         lport = sourceport
-        sourceport += 1
-        if sourceport == 65535:
-            sourceport = 1025
 
         # Make request to controller
 
@@ -96,6 +97,7 @@ class ICNProxy(tornado.web.RequestHandler):
         # Continue downloading from origin
         ctrl_end = datetime.datetime.now()
 
+        http_connection = http.client.HTTPConnection(server, serviceport, source_address=(proxyaddr, sourceport))
         http_connection.connect()
         http_connection.request(method, url)
         response = http_connection.getresponse()
@@ -112,6 +114,7 @@ class ICNProxy(tornado.web.RequestHandler):
         end = datetime.datetime.now()
         logger.info("Controller Request Time: {}".format((ctrl_end-ctrl_start).total_seconds()))
         logger.info("Full Request Time: {}".format((end-start).total_seconds()))
+        self.sourceports.append(sourceport)
         self.finish()
 
 
@@ -120,8 +123,10 @@ def run_proxy(port, start_ioloop=True):
     Run proxy on the specified port. If start_ioloop is True (default),
     the tornado IOLoop will be started immediately.
     """
+    sourceports = list(range(32000, 65000))
+
     app = tornado.web.Application([
-        (r'.*', ICNProxy),
+        (r'.*', ICNProxy, dict(sourceports=sourceports)),
     ])
 
     server = tornado.httpserver.HTTPServer(app)
@@ -153,8 +158,6 @@ if __name__ == '__main__':
     serviceport = int(parser['DEFAULT']['serviceport'])
     logger.info("Read config: {} {} {} {} {} {} {}".format(controller, controllerport, proxyaddr, proxymac, ctrlurl, user, passwd))
     logger.debug("DEBUG OUTPUT ENABLED")
-
-    sourceport = 1025
 
     signal.signal(signal.SIGINT, signal_handler)
 
