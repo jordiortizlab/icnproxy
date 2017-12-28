@@ -12,6 +12,7 @@ else
     source venv/bin/activate
 fi
 
-
-python icnproxy.py&
-
+rm icnproxy.log
+nohup python icnproxy.py > nohup.out 2> nohup.out&
+sleep 60
+echo ""
