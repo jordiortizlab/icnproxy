@@ -22,7 +22,6 @@
 
 import base64
 import datetime
-from multiprocessing.queues import Queue
 from multiprocessing import get_context
 
 import tornado.httpserver
@@ -30,7 +29,6 @@ import tornado.ioloop
 import tornado.web
 import http.client
 import json
-import logging
 import logging.config
 import socket
 import signal
