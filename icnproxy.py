@@ -67,7 +67,7 @@ class ICNProxy(tornado.web.RequestHandler):
         url = req.full_url()
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
         sourceport = self.sourceports.get()
-        logger.debug("Assigned sourceport {} {}".format(sourceport), url)
+        logger.debug("Assigned sourceport {} {}".format(sourceport, url))
         laddr = proxyaddr
         lport = sourceport
 
