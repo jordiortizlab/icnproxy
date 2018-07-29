@@ -67,7 +67,7 @@ class ICNProxy(tornado.web.RequestHandler):
         url = req.full_url()
         logger.info("Received request {} {} {} {}".format(server, proxyport, method, url))
         sourceport = self.sourceports.get()
-        logger.debug("Assigned sourceport {}".format(sourceport))
+        logger.debug("Assigned sourceport {} {}".format(sourceport), url)
         laddr = proxyaddr
         lport = sourceport
 
@@ -98,12 +98,23 @@ class ICNProxy(tornado.web.RequestHandler):
         # Continue downloading from origin
         ctrl_end = datetime.datetime.now()
 
-        http_connection = http.client.HTTPConnection(server, serviceport, source_address=(proxyaddr, sourceport))
-        http_connection.connect()
-        http_connection.request(method, url)
-        response = http_connection.getresponse()
-        body = response.read()
-        http_connection.close()
+        requeststatus = False
+        retry = 3
+        while not requeststatus and retry > 0:
+            try:
+                retry -= 1
+                http_connection = http.client.HTTPConnection(server, serviceport, timeout=0.2, source_address=(proxyaddr, sourceport))
+                http_connection.connect()
+                http_connection.request(method, url)
+                response = http_connection.getresponse()
+                body = response.read()
+                http_connection.close()
+                requeststatus = True
+            except TimeoutError:
+                print("Timedout {}. Trying again", url)
+            except ConnectionError:
+                print("ConnectionError {}. Trying again", url)
+
         logger.debug("Content provider or cache contacted: {} {}".format(url, response.status))
         self.set_status(response.status)
         self._headers = tornado.httputil.HTTPHeaders()
