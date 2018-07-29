@@ -99,7 +99,7 @@ class ICNProxy(tornado.web.RequestHandler):
         ctrl_end = datetime.datetime.now()
 
         requeststatus = False
-        retry = 5
+        retry = 20
         while not requeststatus and retry > 0:
             try:
                 retry -= 1
