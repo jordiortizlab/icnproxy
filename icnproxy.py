@@ -127,8 +127,8 @@ class ICNProxy(tornado.web.RequestHandler):
                 print("Timedout {}. Trying again".format(url))
             except ConnectionError:
                 print("ConnectionError {}. Trying again".format(url))
-            except:
-                print("Unexpected error {}. Trying again".format(url))
+            except Exception as e:
+                print("Unexpected error {} {}. Trying again".format(url, e))
 
         self.sourceports.put(sourceport)
         self.finish()
