@@ -109,23 +109,25 @@ class ICNProxy(tornado.web.RequestHandler):
                 response = http_connection.getresponse()
                 body = response.read()
                 http_connection.close()
+
+                logger.debug("Content provider or cache contacted: {} {}".format(url, response.status))
+                self.set_status(response.status)
+                self._headers = tornado.httputil.HTTPHeaders()
+                for (hname, hvalue) in response.getheaders():
+                    if hname not in ('Content-Length', 'Transfer-Encoding', 'Content-Encoding', 'Connection'):
+                        self.add_header(hname, hvalue)
+                self.write(body)
+                logger.info("End Request {}".format(url))
+                end = datetime.datetime.now()
+                logger.info("Controller Request Time: {}".format((ctrl_end - ctrl_start).total_seconds()))
+                logger.info("Full Request Time: {}".format((end - start).total_seconds()))
+
                 requeststatus = True
             except TimeoutError:
                 print("Timedout {}. Trying again", url)
             except ConnectionError:
                 print("ConnectionError {}. Trying again", url)
 
-        logger.debug("Content provider or cache contacted: {} {}".format(url, response.status))
-        self.set_status(response.status)
-        self._headers = tornado.httputil.HTTPHeaders()
-        for (hname, hvalue) in response.getheaders():
-            if hname not in ('Content-Length', 'Transfer-Encoding', 'Content-Encoding', 'Connection'):
-                self.add_header(hname, hvalue)
-        self.write(body)
-        logger.info("End Request {}".format(url))
-        end = datetime.datetime.now()
-        logger.info("Controller Request Time: {}".format((ctrl_end-ctrl_start).total_seconds()))
-        logger.info("Full Request Time: {}".format((end-start).total_seconds()))
         self.sourceports.put(sourceport)
         self.finish()
 
