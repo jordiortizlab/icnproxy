@@ -129,6 +129,8 @@ class ICNProxy(tornado.web.RequestHandler):
                 print("ConnectionError {}. Trying again {}".format(url, retry))
             except Exception as e:
                 print("Unexpected error {} {}. Trying again {}".format(url, e, retry))
+        if retry == 0:
+            logger.error("Aborted, no more retries {}".format(url))
 
         self.sourceports.put(sourceport)
         self.finish()
