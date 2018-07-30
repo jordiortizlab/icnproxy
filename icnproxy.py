@@ -101,7 +101,6 @@ class ICNProxy(tornado.web.RequestHandler):
         requeststatus = False
         retry = 1
         while not requeststatus and retry < 20:
-            retry += 1
             http_connection = http.client.HTTPConnection(server, serviceport, timeout=retry * 0.2, source_address=(proxyaddr, sourceport))
             try:
                 http_connection.connect()
@@ -130,6 +129,8 @@ class ICNProxy(tornado.web.RequestHandler):
                 print("Unexpected error {} {}. Trying again {}".format(url, e, retry))
             http_connection.close()
             del http_connection
+            retry += 1
+
         if retry == 0:
             logger.error("Aborted, no more retries {}".format(url))
 
