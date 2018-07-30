@@ -99,16 +99,15 @@ class ICNProxy(tornado.web.RequestHandler):
         ctrl_end = datetime.datetime.now()
 
         requeststatus = False
-        retry = 20
-        while not requeststatus and retry > 0:
+        retry = 1
+        while not requeststatus and retry < 20:
+            retry += 1
+            http_connection = http.client.HTTPConnection(server, serviceport, timeout=retry * 0.2, source_address=(proxyaddr, sourceport))
             try:
-                retry -= 1
-                http_connection = http.client.HTTPConnection(server, serviceport, timeout=0.2, source_address=(proxyaddr, sourceport))
                 http_connection.connect()
                 http_connection.request(method, url)
                 response = http_connection.getresponse()
                 body = response.read()
-                http_connection.close()
 
                 logger.debug("Content provider or cache contacted: {} {}".format(url, response.status))
                 self.set_status(response.status)
@@ -129,6 +128,8 @@ class ICNProxy(tornado.web.RequestHandler):
                 print("ConnectionError {}. Trying again {}".format(url, retry))
             except Exception as e:
                 print("Unexpected error {} {}. Trying again {}".format(url, e, retry))
+            http_connection.close()
+            del http_connection
         if retry == 0:
             logger.error("Aborted, no more retries {}".format(url))
 
