@@ -179,6 +179,15 @@ if __name__ == '__main__':
 
     signal.signal(signal.SIGINT, signal_handler)
 
+    # Avoid Address Already in use in http.client. Rewritting connect function
+    # https://stackoverflow.com/questions/15148225/is-it-possible-to-override-the-default-socket-options-in-requests
+    orig_connect = http.client.HTTPConnection.connect
+    def monkey_connect(self):
+            orig_connect(self)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    http.client.HTTPConnection.connect = monkey_connect
+
+
     # Prepare multi processing
     ctx = get_context('spawn')
     sourceports = ctx.Queue()
